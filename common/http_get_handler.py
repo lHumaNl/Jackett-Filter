@@ -3,28 +3,32 @@ import logging
 import os
 import traceback
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
+from typing import Optional
 
 import requests
+from requests import Response
 
 from common.settings import Settings
+from models.jackett_response_keys import JackettResponseKeys
 
 
 class HttpGetHandler(BaseHTTPRequestHandler):
     settings: Settings
     __response_message: str
-    __api_key_from_request: str
     __is_ok = True
 
-    def do_GET(self):
-        if self.settings.jackett_api_key is not None:
-            self.__replace_api_key_in_path()
+    def do_OPTIONS(self):
+        self.send_response(204)
 
+        self.send_header("Allow", "OPTIONS, GET")
+        self.end_headers()
+
+    def do_GET(self):
         jackett_response = self.__get_jackett_response()
 
         if jackett_response is not None:
             try:
-                self.__response_message = json.dumps(self.__filter_results(jackett_response), ensure_ascii=False)
+                self.__response_message = json.dumps(self.__filter_results(jackett_response.json()), ensure_ascii=True)
             except Exception:
                 self.__is_ok = False
                 self.__response_message = '{"Error": "Failed to filtering response from Jackett"}'
@@ -35,77 +39,79 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(500)
 
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Cache-Control", "no-store,no-cache")
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Pragma", "no-cache")
-        self.send_header("Vary", "Accept-Encoding")
-        self.end_headers()
+        self.__add_headers_for_response()
 
         self.wfile.write(self.__response_message.encode())
 
+    @staticmethod
+    def __calculate_film_size_in_gibibyte(film_size_in_bytes) -> float:
+        gibibyte_film_size = round(film_size_in_bytes / (1024 * 1024 * 1024), 2)
+
+        return gibibyte_film_size
+
     def __filter_results(self, jackett_response: dict) -> dict:
         valid_results = []
-        valid_indexers = jackett_response["Indexers"]
+        valid_indexers = jackett_response[JackettResponseKeys.INDEXERS]
 
         for i in range(len(valid_indexers)):
-            valid_indexers[i]["Results"] = 0
+            valid_indexers[i][JackettResponseKeys.RESULTS] = 0
 
-        for film_dict in jackett_response["Results"]:
-            if film_dict["Seeders"] >= self.settings.min_seeds:
+        for film_dict in jackett_response[JackettResponseKeys.RESULTS]:
+            if film_dict[JackettResponseKeys.SEEDERS] >= self.settings.min_seeds:
 
-                file_size = round(film_dict["Size"] / (1024 * 1024 * 1024), 2)
+                gibibyte_film_size = HttpGetHandler.__calculate_film_size_in_gibibyte(
+                    film_dict[JackettResponseKeys.SIZE])
 
                 if self.settings.max_size_of_torrent is not None and self.settings.min_size_of_torrent is not None:
-                    if self.settings.min_size_of_torrent <= file_size <= self.settings.max_size_of_torrent:
+                    if self.settings.min_size_of_torrent <= gibibyte_film_size <= self.settings.max_size_of_torrent:
                         valid_results.append(film_dict)
                     else:
                         continue
 
                 elif self.settings.max_size_of_torrent is not None:
-                    if file_size <= self.settings.max_size_of_torrent:
+                    if gibibyte_film_size <= self.settings.max_size_of_torrent:
                         valid_results.append(film_dict)
                     else:
                         continue
                 elif self.settings.min_size_of_torrent is not None:
-                    if file_size >= self.settings.min_size_of_torrent:
+                    if gibibyte_film_size >= self.settings.min_size_of_torrent:
                         valid_results.append(film_dict)
                     else:
                         continue
                 else:
                     valid_results.append(film_dict)
 
-                valid_indexers = self.__increment_index_result_count(valid_indexers, film_dict["TrackerId"])
+                valid_indexers = self.__increment_index_result_count(valid_indexers,
+                                                                     film_dict[JackettResponseKeys.TRACKERID])
 
-        return {"Results": valid_results,
-                "Indexers": valid_indexers}
+        return {JackettResponseKeys.RESULTS: valid_results,
+                JackettResponseKeys.INDEXERS: valid_indexers}
+
+    def __add_headers_for_response(self):
+        headers_dict = {
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-store,no-cache",
+            "Content-Type": "application/json; charset=utf-8",
+            "Pragma": "no-cache",
+            "Vary": "Accept-Encoding",
+        }
+
+        for header_key, header_value in headers_dict.items():
+            self.send_header(header_key, header_value)
+
+        self.end_headers()
 
     @staticmethod
     def __increment_index_result_count(valid_indexers: list, tracker_id: str) -> list:
         for i in range(len(valid_indexers)):
-            if valid_indexers[i]["ID"] == tracker_id:
-                valid_indexers[i]["Results"] += 1
+            if valid_indexers[i][JackettResponseKeys.ID] == tracker_id:
+                valid_indexers[i][JackettResponseKeys.RESULTS] += 1
 
         return valid_indexers
 
-    def __replace_api_key_in_path(self):
+    def __get_jackett_response(self) -> Optional[Response]:
         try:
-            parsed_api_query = [api_key_query
-                                for api_key_query in urlparse(self.path).query.split("&")
-                                if api_key_query.__contains__("apikey")][0]
-
-            self.__api_key_from_request = parsed_api_query.split("=")[1]
-
-            self.path = self.path.replace(parsed_api_query, f"apikey={self.settings.jackett_api_key}")
-        except Exception:
-            logging.error(f"Failed to parse api key from request{os.linesep + traceback.format_exc()}")
-            self.__is_ok = False
-            self.__response_message = '{"Error": "Failed to parse api key from request"}'
-
-    def __get_jackett_response(self):
-        try:
-            jackett_response = requests.get(
-                f"{self.settings.jackett_protocol}://{self.settings.jackett_host}{self.path}").json()
+            jackett_response = requests.get(f"{self.settings.jackett_host}{self.path}")
         except Exception:
             logging.error(f"Failed to send request to Jackett{os.linesep + traceback.format_exc()}")
             self.__response_message = '{"Error": "Failed to send request to Jackett"}'

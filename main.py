@@ -17,9 +17,7 @@ def main():
     try:
         web_server.serve_forever()
     except KeyboardInterrupt:
-        pass
-
-    web_server.server_close()
+        web_server.server_close()
 
 
 if __name__ == '__main__':
