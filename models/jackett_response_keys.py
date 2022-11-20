@@ -3,5 +3,5 @@ class JackettResponseKeys:
     RESULTS = 'Results'
     SEEDERS = 'Seeders'
     SIZE = 'Size'
-    TRACKERID = 'TrackerId'
+    TRACKER_ID = 'TrackerId'
     ID = 'ID'

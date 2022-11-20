@@ -82,7 +82,7 @@ class HttpGetHandler(BaseHTTPRequestHandler):
                     valid_results.append(film_dict)
 
                 valid_indexers = self.__increment_index_result_count(valid_indexers,
-                                                                     film_dict[JackettResponseKeys.TRACKERID])
+                                                                     film_dict[JackettResponseKeys.TRACKER_ID])
 
         return {JackettResponseKeys.RESULTS: valid_results,
                 JackettResponseKeys.INDEXERS: valid_indexers}
