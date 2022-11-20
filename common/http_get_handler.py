@@ -111,7 +111,7 @@ class HttpGetHandler(BaseHTTPRequestHandler):
 
     def __get_jackett_response(self) -> Optional[Response]:
         try:
-            jackett_response = requests.get(f"{self.settings.jackett_host}{self.path}")
+            jackett_response = requests.get(f"{self.settings.jackett_host}{self.path}", verify=False)
         except Exception:
             logging.error(f"Failed to send request to Jackett{os.linesep + traceback.format_exc()}")
             self.__response_message = '{"Error": "Failed to send request to Jackett"}'
