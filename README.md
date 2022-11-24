@@ -38,10 +38,10 @@ Key | Required | Default value | Type | Description | Example
 ## Installation using Docker
 
 1. Build image `docker build -t jackett-filter .`
-2. Run container ```docker run -d \
-    --restart always \
-    -p 9118:9118 \
-    -v <path-to-config-folder>:/app/config \
-    -it \
-    --name jackett-filter \
+2. Run container ```docker run -d
+    --restart always
+    -p 9118:9118
+    -v <path-to-config-folder>:/app/config
+    -it
+    --name jackett-filter
     jackett-filter```
