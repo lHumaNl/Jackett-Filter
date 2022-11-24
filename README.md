@@ -22,8 +22,8 @@ Key | Required | Default value | Type | Description | Example
 -|-|-|-|-|-
 `link` | True | Null | String | Link to Jackett | `"link": "http://<host>:9117"`
 `min_seeds` | False | 2 | Integer | Minimum seeds in result | `"min_seeds": 2`
-`min_size` | False | 1 | Float | Minimum size of torrent in Gb | `"min_size": 1.5`
-`max_size` | False | Null | Float | Maximum size of torrent in Gb | `"max_size": 145`
+`min_size` | False | 1 | Integer/Float | Minimum size of torrent in Gb | `"min_size": 1.5`
+`max_size` | False | Null | Integer/Float | Maximum size of torrent in Gb | `"max_size": 145`
 
 ### JSON config Example
 
