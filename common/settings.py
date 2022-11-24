@@ -24,9 +24,9 @@ class Settings:
 
         self.jackett_host = self.__get_value_from_dict(config_dict, ParamNames.LINK)
 
-        self.min_seeds = self.__get_value_from_dict(config_dict, ParamNames.MIN_SEEDS)
+        self.min_seeds = self.__get_value_from_dict(config_dict, ParamNames.MIN_SEEDS, True, 2)
 
-        min_size_of_torrent = self.__get_value_from_dict(config_dict, ParamNames.MIN_SIZE, True)
+        min_size_of_torrent = self.__get_value_from_dict(config_dict, ParamNames.MIN_SIZE, True, 1)
         self.min_size_of_torrent = float(min_size_of_torrent) if min_size_of_torrent is not None else None
 
         max_size_of_torrent = self.__get_value_from_dict(config_dict, ParamNames.MAX_SIZE, True)
