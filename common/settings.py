@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from models.param_names import ParamNames
 
@@ -15,6 +15,8 @@ class Settings:
     min_seeds: int
     min_size_of_torrent: float
     max_size_of_torrent: float
+    ignore_params: List[str]
+    add_categorises: List
 
     def __init__(self, args_dict):
         config_file_name = self.__get_value_from_dict(args_dict, ParamNames.CONFIG_FILE)
@@ -36,6 +38,9 @@ class Settings:
             if self.min_size_of_torrent >= self.max_size_of_torrent:
                 logging.error("Min size of torrent can't be greater then max")
                 sys.exit(1)
+
+        self.ignore_params = self.__get_value_from_dict(config_dict, ParamNames.IGNORE_PARAMS, True)
+        self.add_categorises = self.__get_value_from_dict(config_dict, ParamNames.ADD_CATEGORISES, True)
 
     @staticmethod
     def __get_value_from_dict(config_dict: Dict, dict_key: str, pass_if_not_in_dict=False,

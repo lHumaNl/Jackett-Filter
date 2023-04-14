@@ -7,3 +7,5 @@ class ParamNames:
     MIN_SEEDS = 'min_seeds'
     MIN_SIZE = 'min_size'
     MAX_SIZE = 'max_size'
+    IGNORE_PARAMS = 'ignore_params'
+    ADD_CATEGORISES = 'add_categorises'

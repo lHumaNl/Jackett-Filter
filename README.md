@@ -5,10 +5,10 @@ and is designed to filter the final results (by torrent size and/or number of se
 
 ## Console arguments
 
-Arg | Required | Default value | Description
--|-|-|-
-`--util_port` | False | 9118 | Port on which the proxy web server will start
-`--config_file` | False | `config.json` | File name with configs. File must be placed in `config` folder near `main.py`
+| Arg             | Required | Default value | Description                                                                   |
+|-----------------|----------|---------------|-------------------------------------------------------------------------------|
+| `--util_port`   | False    | 9118          | Port on which the proxy web server will start                                 |
+| `--config_file` | False    | `config.json` | File name with configs. File must be placed in `config` folder near `main.py` |
 
 ## Instruction for JSON config file
 
@@ -18,12 +18,14 @@ because in the future it is not expected to enter a console argument `--config_f
 
 ### JSON config keys
 
-Key | Required | Default value | Type | Description | Example
--|-|-|-|-|-
-`link` | True | Null | String | Link to Jackett | `"link": "http://<host>:9117"`
-`min_seeds` | False | 2 | Integer | Minimum seeds in result | `"min_seeds": 2`
-`min_size` | False | 1 | Integer/Float | Minimum size of torrent in Gb | `"min_size": 1.5`
-`max_size` | False | Null | Integer/Float | Maximum size of torrent in Gb | `"max_size": 145`
+| Key               | Required | Default value | Type                      | Description                   | Example                                    |
+|-------------------|----------|---------------|---------------------------|-------------------------------|--------------------------------------------|
+| `link`            | True     | Null          | String                    | Link to Jackett               | `"link": "http://<host>:9117"`             |
+| `min_seeds`       | False    | 2             | Integer                   | Minimum seeds in result       | `"min_seeds": 2`                           |
+| `min_size`        | False    | 1             | Integer/Float             | Minimum size of torrent in Gb | `"min_size": 1.5`                          |
+| `max_size`        | False    | Null          | Integer/Float             | Maximum size of torrent in Gb | `"max_size": 145`                          |
+| `ignore_params`   | False    | Null          | JsonArray(String)         | Ignoring params in query      | `"ignore_params": ["genres", "is_serial"]` |
+| `add_categorises` | False    | Null          | JsonArray(Integer/String) | Add categorises in query      | `"add_categorises": [8000]`                |
 
 ### JSON config Example
 
@@ -31,7 +33,14 @@ Key | Required | Default value | Type | Description | Example
 {
   "link": "http://10.10.0.21:9117",
   "min_seeds": 2,
-  "min_size": 1
+  "min_size": 1,
+  "ignore_params": [
+    "genres",
+    "is_serial",
+    "title",
+    "title_original"
+  ],
+  "add_categorises": [8000]
 }
 ```
 

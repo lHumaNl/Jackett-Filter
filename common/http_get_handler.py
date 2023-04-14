@@ -2,13 +2,16 @@ import json
 import logging
 import os
 import traceback
+import urllib
 from http.server import BaseHTTPRequestHandler
-from typing import Optional
+from typing import Optional, List
+from urllib.parse import urlparse, parse_qs
 
 import requests
 from requests import Response
 
 from common.settings import Settings
+from models.jackett_query_params import JackettQueryParams
 from models.jackett_response_keys import JackettResponseKeys
 
 
@@ -45,9 +48,7 @@ class HttpGetHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def __calculate_film_size_in_gibibyte(film_size_in_bytes) -> float:
-        gibibyte_film_size = round(film_size_in_bytes / (1024 * 1024 * 1024), 2)
-
-        return gibibyte_film_size
+        return round(film_size_in_bytes / (1024 * 1024 * 1024), 2)
 
     def __filter_results(self, jackett_response: dict) -> dict:
         valid_results = []
@@ -110,8 +111,10 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         return valid_indexers
 
     def __get_jackett_response(self) -> Optional[Response]:
+        path = self.__update_path_for_request(self.path, self.settings.ignore_params, self.settings.add_categorises)
+
         try:
-            jackett_response = requests.get(f"{self.settings.jackett_host}{self.path}", verify=False)
+            jackett_response = requests.get(f"{self.settings.jackett_host}{path}", verify=False)
         except Exception:
             logging.error(f"Failed to send request to Jackett{os.linesep + traceback.format_exc()}")
             self.__response_message = '{"Error": "Failed to send request to Jackett"}'
@@ -119,3 +122,28 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             self.__is_ok = False
 
         return jackett_response
+
+    @staticmethod
+    def __update_path_for_request(path: str, ignore_params: List[str], add_categorises: List) -> str:
+        parsed_url = urlparse(path)
+        captured_value = parse_qs(parsed_url.query)
+
+        for key in ignore_params:
+            if key in captured_value:
+                captured_value.pop(key)
+
+        if add_categorises is not None and JackettQueryParams.CATEGORY in captured_value:
+            captured_value[JackettQueryParams.CATEGORY][0] = HttpGetHandler.__update_categorises(captured_value,
+                                                                                                 add_categorises)
+
+        values_for_url_encode = {}
+        for key in captured_value.keys():
+            values_for_url_encode[key] = captured_value[key][0]
+
+        return parsed_url.path + '?' + urllib.parse.urlencode(values_for_url_encode)
+
+    @staticmethod
+    def __update_categorises(captured_value: dict, add_categorises: List[int]) -> str:
+        return captured_value[JackettQueryParams.CATEGORY][0] + "," + ",".join(
+            [str(category) for category in add_categorises]
+        )
